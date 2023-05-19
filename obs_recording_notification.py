@@ -22,6 +22,12 @@ timer_enable = True
 
 is_paused = False
 
+runtime = 0
+
+hover = False
+
+window_was_running = False
+
 #----------------------------------------------------------------------------------------
 
 # ***** VARIABLES *****
@@ -48,13 +54,13 @@ class Application(tk.Frame):
 
         # calculate the screen width based on the resolution
         screen_width = self.master.winfo_screenwidth()
-        screen_x= int(screen_width/2)
+        screen_x= int(screen_width/2) - 250
 
         self.master.attributes('-alpha', win_opacity) # window opacity
         self.master.configure(bg='grey') # window color
         self.master.overrideredirect(1) # borderless window
         self.master.attributes('-topmost', True) # keep always on top
-        self.master.geometry(f'{140}x{28}+{screen_x}+{0}') # window size(x) and position (+)
+        self.master.geometry(f'{500}x{100}+{screen_x}+{0}') # window size(x) and position (+)
 
         global canvas
         canvas = Canvas(self,height='25',width='30', bg='grey',highlightthickness=0) # canvas for REC button
@@ -71,7 +77,7 @@ class Application(tk.Frame):
             global stopwatch_label # modify the stopwatch from global
             stopwatch_label = Label(self, text='00:00:00', font=('Arial', 20),bg="grey",fg="white" )  # show the clock an pack it
             stopwatch_label.grid(row='1',column= '0',columnspan='2')
-            self.master.geometry(f'{140}x{61}+{screen_x}+{0}')
+            self.master.geometry(f'{500}x{100}+{screen_x}+{0}')
             # start()  #start the timer function
 
 
@@ -130,6 +136,18 @@ class Application(tk.Frame):
             is_paused = False
             obs.obs_frontend_recording_stop()
 
+        def on_start_hover(x):
+            global runtime
+            global hover
+            print("hovered")
+            hover = True
+            runtime = 0
+
+        def on_end_hover(x):
+            global hover
+            print("unhovered")
+            hover = False
+
         # adds a right-click popup menu to the main frame
         popup_menu = Menu(self, tearoff=False)
         popup_menu.add_command(label='Pause Recording', command=pause_from_menu)
@@ -140,6 +158,9 @@ class Application(tk.Frame):
         self.master.bind('<ButtonRelease-1>', ClickRelease)
         self.master.bind('<Button-1>', SaveLastClickPos)  # click to drag and drop window
         self.master.bind('<B1-Motion>', Dragging)
+
+        self.master.bind('<Enter>', on_start_hover)
+        self.master.bind('<Leave>', on_end_hover)
 
 
     # update stopwatch function
@@ -198,23 +219,45 @@ class Application(tk.Frame):
         global is_paused
         global label
         global canvas
-        
+        global runtime
+        global window_was_running
+        print(hover)
         if window_start and not is_paused:
+            window_was_running = True
+            runtime += 1
             self.start()
-            self.master.attributes('-alpha', 0.9) # window opacity
-            label.config(text='OBS is recording')
+            # self.master.attributes('-alpha', 0.9) # window opacity
+            label.config(text='RECORDING STARTED')
             canvas.delete("all")
             canvas.create_oval(21, 21, 2, 3, outline='grey10', fill='grey40')
             canvas.create_oval(20, 20, 4, 5, fill='red', outline='' )
-        elif not window_start:
-            try: # ingnore the error when the clock stops..
-                self.reset()
-            except Exception:
-                pass
-            self.master.attributes('-alpha', 0.0) # window opacity
+            if runtime <= 30:
+                self.master.attributes('-alpha', 0.8) # window opacity
+            else:
+                if hover == False:
+                    self.master.attributes('-alpha', 0.0)
 
-        if loop_destroy:
-            self.destroy()
+        elif not window_start:
+            if window_was_running:
+                runtime = 0
+                window_was_running = False
+                label.config(text='RECORDING STOPPED')
+                self.pause()
+                self.master.attributes('-alpha', 0.8) # window opacity
+                canvas.delete("all")
+                canvas.create_rectangle(20, 20, 5, 5, fill='red', outline='grey30')
+
+            else:
+                if hover == False:
+                    self.master.attributes('-alpha', 0.0) # window opacity
+                    try: # ingnore the error when the clock stops..
+                        self.reset()
+                    except Exception:
+                        pass
+                
+        if loop_destroy:     
+            self.master.attributes('-alpha', 0.0) # window opacity
+            runtime = 0
         
         elif is_paused:
             self.pause()
@@ -223,7 +266,12 @@ class Application(tk.Frame):
             canvas.create_rectangle(10, 20, 5, 5, fill='grey20', outline='grey30')
             canvas.create_rectangle(20, 20, 15, 5, fill='grey20', outline='grey30')
 
-        self.after(100, self.check_loop_status)  # Check again after delay.
+        # self.after(100, self.check_loop_status)  # Check again after delay.
+
+        if window_was_running or window_start:
+            self.after(100, self.check_loop_status)  # Check again after delay.
+        else:
+            self.after(3000, self.check_loop_status)  # Check again after delay.
     
  
 def runtk():  # runs in background thread
