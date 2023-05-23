@@ -234,6 +234,7 @@ class Application(tk.Frame):
             if runtime <= 30:
                 self.master.attributes('-alpha', 0.8) # window opacity
             else:
+                runtime = 30
                 if hover == False:
                     self.master.attributes('-alpha', 0.0)
 
