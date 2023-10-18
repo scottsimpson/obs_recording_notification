@@ -13,7 +13,8 @@ This script was made using Python and tkinter library.
 - The window sticks to the edges of the screen when they are close.
 - You can enable or disable the Timer in the properties
 - Pause and unpause supported
-- The window is always on top (*negative feature: full screen programs are not supported :c ) 
+- The window is always on top (*negative feature: full screen programs are not supported :c )
+- Added an option to hide the counter window after 3 seconds of recording.
             
         
 ### Installation:
